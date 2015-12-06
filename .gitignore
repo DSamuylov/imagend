@@ -1,0 +1,7 @@
+# Hidden directories
+.DS_Store
+
+# Python
+imagend.egg-info
+.ipynb_checkpoints
+*.pyc
