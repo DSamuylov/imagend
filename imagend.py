@@ -36,8 +36,8 @@ def project(img, axis, proj='mean'):
 
 
 def project_image_stack(img, vmin=None, vmax=None, axes=None,
-                  proj='mean', figwidth=3, add_labels=False,
-                  cmap='gray', alpha=1, aspect=1):
+                  proj="mean", figwidth=3, add_labels=False,
+                  cmap=cm.viridis, alpha=1, aspect=1):
     """Plot x-, y-, z-projections of an image stack.
 
     Parameters
@@ -133,7 +133,7 @@ def project_image_stack(img, vmin=None, vmax=None, axes=None,
 def project_image_sequence(img_sequence, frames=None,
                    nsubfig=None, subfigwidth=3, ncol=5,
                    vmin=None, vmax=None, proj='mean',
-                   add_labels=False, cmap=cm.gray):
+                   add_labels=False, cmap=cm.viridis):
     """Plot a grid of x,y,z projections of an image sequence.
 
     Parameters
@@ -408,7 +408,7 @@ def outline_pixels_in_stack_projections(axes, mask,
 
 def compare_stack_projections(imgs, labels=None, subfigwidth=3,
                       vmin=None, vmax=None, proj='mean',
-                      add_labels=False, normalized=False):
+                      add_labels=False, normalized=False, cmap=cm.viridis):
     """Compare projections of 3D stacks.
 
     Parameters
@@ -453,7 +453,8 @@ def compare_stack_projections(imgs, labels=None, subfigwidth=3,
             .format(vmin, vmax)
 
     if labels is None:
-        labels = ["image {}".format(i) for i in range(n_imgs)]
+        # labels = ["image {}".format(i) for i in range(n_imgs)]
+        labels = [None]*n_imgs
 
     n_col = n_imgs
     n_row = 1
@@ -478,12 +479,13 @@ def compare_stack_projections(imgs, labels=None, subfigwidth=3,
                       wspace=0.05, hspace=0.05)
 
             ax_z = plt.Subplot(fig, gs[0, 0])
-            ax_z.set_title(label)
+            if label is not None:
+                ax_z.set_title(label)
             ax_y = plt.Subplot(fig, gs[1, 0], sharex=ax_z)
             ax_x = plt.Subplot(fig, gs[0, 1], sharey=ax_z)
 
             project_image_stack(img, vmin, vmax, (ax_z, ax_y, ax_x),
-                                proj, subfigwidth, add_labels)
+                                proj, subfigwidth, add_labels, cmap=cmap)
 
             fig.add_subplot(ax_z)
             fig.add_subplot(ax_y)
@@ -495,7 +497,7 @@ def compare_stack_projections(imgs, labels=None, subfigwidth=3,
 
 
 def show_stack(stack, slice_ind_list=None, n_col=5, width_subfig=5,
-               vmin=None, vmax=None, cmap="gray"):
+               vmin=None, vmax=None, cmap=cm.viridis):
     """Display slices of 3D stack of images"""
     assert len(stack.shape) == 3
     nslices, ny, nx = stack.shape
