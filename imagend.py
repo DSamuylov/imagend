@@ -280,15 +280,32 @@ def draw_line_segment_in_stack_projections(axes, pos_is_start, pos_is_end,
 
 def draw_box_in_stack_projections(axes, bbox, color="red", alpha=0.5,
                                   ls=3, **kwargs):
-    p1 = bbox[0, 0, 0].reshape(1, 3)
-    p2 = bbox[-1, 0, 0].reshape(1, 3)
-    p3 = bbox[-1, -1, 0].reshape(1, 3)
-    p4 = bbox[0, -1, 0].reshape(1, 3)
+    """Box is defined by bottom left and top right corners."""
+    bbox = np.array(bbox)
 
-    p5 = bbox[0, 0, -1].reshape(1, 3)
-    p6 = bbox[-1, 0, -1].reshape(1, 3)
-    p7 = bbox[-1, -1, -1].reshape(1, 3)
-    p8 = bbox[0, -1, -1].reshape(1, 3)
+    bl, tr = bbox
+    z_min, y_min, x_min = bl
+    z_max, y_max, x_max = tr
+
+    p1 = np.array([z_min, y_min, x_min])
+    p2 = np.array([z_min, y_min, x_max])
+    p3 = np.array([z_min, y_max, x_max])
+    p4 = np.array([z_min, y_max, x_min])
+
+    p5 = np.array([z_max, y_min, x_min])
+    p6 = np.array([z_max, y_min, x_max])
+    p7 = np.array([z_max, y_max, x_max])
+    p8 = np.array([z_max, y_max, x_min])
+
+    # p1 = bbox[0, 0, 0].reshape(1, 3)
+    # p2 = bbox[-1, 0, 0].reshape(1, 3)
+    # p3 = bbox[-1, -1, 0].reshape(1, 3)
+    # p4 = bbox[0, -1, 0].reshape(1, 3)
+
+    # p5 = bbox[0, 0, -1].reshape(1, 3)
+    # p6 = bbox[-1, 0, -1].reshape(1, 3)
+    # p7 = bbox[-1, -1, -1].reshape(1, 3)
+    # p8 = bbox[0, -1, -1].reshape(1, 3)
 
     # -> Top facet:
     draw_line_segment_in_stack_projections(
