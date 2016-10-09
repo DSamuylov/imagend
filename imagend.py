@@ -1,7 +1,8 @@
 """A small python package to visualize 3 and 4 dimensional image data.
 
-Author: Denis Samuylov
+Author: Denis Samuylov, Prateek Purwar
 E-mail: denis.samuylov@gmail.com
+        pp.semtex@gmail.com
 
 """
 
@@ -11,6 +12,7 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib.font_manager as font_manager
+import matplotlib.patches as mpatch
 
 
 class DimensionError(Exception):
@@ -348,6 +350,88 @@ def draw_box_in_stack_projections(axes, bbox, color="red", alpha=0.5,
     draw_line_segment_in_stack_projections(
         axes, p4, p8,
         lw=ls, color=color, alpha=alpha, **kwargs)
+
+
+def draw_circle_in_stack_projections(axes, center_is, radius_is, color="red", alpha=0.5, **kwargs):
+    
+    """Draw circle with same radius on three projections.
+
+    Parameters
+    ----------
+    center_is : array
+        An array of centers in image space (slice, y, x).
+    radius_is : array
+        An array of radius for each sphere in image space (r).
+    axes : tuple
+        A tuple of axes for z, y, x projections respectively.
+    ...
+
+    """
+
+    ax_z, ax_y, ax_x = axes
+
+    if len(center_is.shape) == 1:
+        center_is = center_is.reshape(1, 3)
+
+    center_x = center_is[:, 2]
+    center_y = center_is[:, 1]
+    center_z = center_is[:, 0]
+    
+    for x,y,z,r in zip(center_x, center_y, center_z, radius_is):
+        circle_z = plt.Circle((x, y), r, color=color, alpha=alpha, fill=False, clip_on=True, **kwargs)
+        ax_z.add_artist(circle_z)
+        
+        circle_y = plt.Circle((x, z), r, color=color, alpha=alpha, fill=False, clip_on=True, **kwargs)
+        ax_y.add_artist(circle_y)
+        
+        circle_x = plt.Circle((z, y), r, color=color, alpha=alpha, fill=False, clip_on=True, **kwargs)
+        ax_x.add_artist(circle_x)  
+
+
+
+def draw_ellipse_in_stack_projections(axes, center_is, radius_is, color="red", alpha=0.5, **kwargs):
+
+    """Draw ellipse on three projections.
+
+    Parameters
+    ----------
+    center_is : array
+        An array of centers in image space (slice, y, x).
+    radius_is : array
+        An array of radii in image space (rz, ry, rx).
+    axes : tuple
+        A tuple of axes for z, y, x projections respectively.
+    ...
+
+    """
+    ax_z, ax_y, ax_x = axes
+
+    if len(center_is.shape) == 1:
+        center_is = center_is.reshape(1, 3)
+        diameter_is = 2.0*radius_is.reshape(1, 3)
+    
+    center_x = center_is[:, 2]
+    center_y = center_is[:, 1]
+    center_z = center_is[:, 0]
+    
+    len_x = diameter_is[:, 2]
+    len_y = diameter_is[:, 1]
+    len_z = diameter_is[:, 0]
+    
+    for x,y,z,d in zip(center_x, center_y, center_z, diameter_is):
+
+        ellipse_z = mpatch.Ellipse(xy=(x,y), width=len_x, height=len_y, color=color, alpha=alpha,
+                                 fill=False, clip_on=True, **kwargs)
+        ax_z.add_patch(ellipse_z)
+        
+        ellipse_y = mpatch.Ellipse(xy=(x,z), width=len_x, height=len_z, color=color, alpha=alpha,
+                                 fill=False, clip_on=True, **kwargs)
+        ax_y.add_patch(ellipse_y)        
+        
+        ellipse_x = mpatch.Ellipse(xy=(z,y), width=len_z, height=len_y, color=color, alpha=alpha,
+                                 fill=False, clip_on=True, **kwargs)
+        ax_x.add_patch(ellipse_x)
+
 
 
 def draw_pixel_outlines(ax, mask, color='green', **kwargs):
