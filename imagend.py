@@ -232,7 +232,7 @@ def project_image_sequence(img_sequence, frames=None,
 
 
 def draw_points_in_stack_projections(axes, pos_is, marker='.',
-                                     color='r', **kwargs):
+                                     color='r', mew=0, **kwargs):
     """Draw points on three projections.
 
     Parameters
@@ -252,13 +252,13 @@ def draw_points_in_stack_projections(axes, pos_is, marker='.',
     # Note: we remove repetitions for better visualisation:
     xy_unique = np.array(list(set([tuple([_x, _y]) for _x, _y in zip(x, y)])))
     ax_z.plot(xy_unique[:, 0], xy_unique[:, 1],
-              marker=marker, color=color, linestyle=' ', **kwargs)
+              marker=marker, color=color, linestyle=' ', mew=0, **kwargs)
     xz_unique = np.array(list(set([tuple([_x, _z]) for _x, _z in zip(x, z)])))
     ax_y.plot(xz_unique[:, 0], xz_unique[:, 1],
-              marker=marker, color=color, linestyle=' ', **kwargs)
+              marker=marker, color=color, linestyle=' ', mew=0, **kwargs)
     zy_unique = np.array(list(set([tuple([_z, _y]) for _z, _y in zip(z, y)])))
     ax_x.plot(zy_unique[:, 0], zy_unique[:, 1],
-              marker=marker, color=color, linestyle=' ', **kwargs)
+              marker=marker, color=color, linestyle=' ', mew=0, **kwargs)
 
 
 def draw_line_segment_in_stack_projections(axes, pos_is_start, pos_is_end,
@@ -353,7 +353,7 @@ def draw_box_in_stack_projections(axes, bbox, color="red", alpha=0.5,
 
 
 def draw_circle_in_stack_projections(axes, center_is, radius_is, color="red", alpha=0.5, **kwargs):
-    
+
     """Draw circle with same radius on three projections.
 
     Parameters
@@ -376,20 +376,19 @@ def draw_circle_in_stack_projections(axes, center_is, radius_is, color="red", al
     center_x = center_is[:, 2]
     center_y = center_is[:, 1]
     center_z = center_is[:, 0]
-    
+
     for x,y,z,r in zip(center_x, center_y, center_z, radius_is):
         circle_z = plt.Circle((x, y), r, color=color, alpha=alpha, fill=False, clip_on=True, **kwargs)
         ax_z.add_artist(circle_z)
-        
+
         circle_y = plt.Circle((x, z), r, color=color, alpha=alpha, fill=False, clip_on=True, **kwargs)
         ax_y.add_artist(circle_y)
-        
+
         circle_x = plt.Circle((z, y), r, color=color, alpha=alpha, fill=False, clip_on=True, **kwargs)
-        ax_x.add_artist(circle_x)  
+        ax_x.add_artist(circle_x)
 
 
-
-def draw_ellipse_in_stack_projections(axes, center_is, radius_is, color="red", alpha=0.5, **kwargs):
+def draw_ellipse_in_stack_projections(axes, center_is, radius_is, color="red", alpha=0.75, lw=2, **kwargs):
 
     """Draw ellipse on three projections.
 
@@ -408,30 +407,36 @@ def draw_ellipse_in_stack_projections(axes, center_is, radius_is, color="red", a
 
     if len(center_is.shape) == 1:
         center_is = center_is.reshape(1, 3)
-        diameter_is = 2.0*radius_is.reshape(1, 3)
-    
+
+    if len(radius_is.shape) == 1:
+        radius_is = radius_is.reshape(1, 3)
+
+    if (len(center_is) > 1) and (len(radius_is) == 1):
+        radius_is = np.array(np.tile(radius_is, (len(center_is), 1)))
+
     center_x = center_is[:, 2]
     center_y = center_is[:, 1]
     center_z = center_is[:, 0]
-    
-    len_x = diameter_is[:, 2]
-    len_y = diameter_is[:, 1]
-    len_z = diameter_is[:, 0]
-    
-    for x,y,z,d in zip(center_x, center_y, center_z, diameter_is):
 
-        ellipse_z = mpatch.Ellipse(xy=(x,y), width=len_x, height=len_y, color=color, alpha=alpha,
-                                 fill=False, clip_on=True, **kwargs)
+    diameter_is = 2.0*radius_is
+
+    for x, y, z, d in zip(center_x, center_y, center_z, diameter_is):
+        dz, dy, dx = d
+
+        ellipse_z = mpatch.Ellipse(
+            xy=(x, y), width=dx, height=dy, color=color, alpha=alpha,
+            fill=False, clip_on=True, lw=lw, **kwargs)
         ax_z.add_patch(ellipse_z)
-        
-        ellipse_y = mpatch.Ellipse(xy=(x,z), width=len_x, height=len_z, color=color, alpha=alpha,
-                                 fill=False, clip_on=True, **kwargs)
-        ax_y.add_patch(ellipse_y)        
-        
-        ellipse_x = mpatch.Ellipse(xy=(z,y), width=len_z, height=len_y, color=color, alpha=alpha,
-                                 fill=False, clip_on=True, **kwargs)
-        ax_x.add_patch(ellipse_x)
 
+        ellipse_y = mpatch.Ellipse(
+            xy=(x, z), width=dx, height=dz, color=color, alpha=alpha,
+            fill=False, clip_on=True, lw=lw, **kwargs)
+        ax_y.add_patch(ellipse_y)
+
+        ellipse_x = mpatch.Ellipse(
+            xy=(z, y), width=dz, height=dy, color=color, alpha=alpha,
+            fill=False, clip_on=True, lw=lw, **kwargs)
+        ax_x.add_patch(ellipse_x)
 
 
 def draw_pixel_outlines(ax, mask, color='green', **kwargs):
@@ -491,8 +496,8 @@ def draw_pixel_outlines(ax, mask, color='green', **kwargs):
         ax.plot(edge[:, 1], edge[:, 0], color=color, **kwargs)
 
 
-def outline_pixels_in_stack_projections(axes, mask,
-                                        color='green', **kwargs):
+def draw_pixel_outlines_in_stack_projections(axes, mask,
+                                             color='green', **kwargs):
     """Draw pixel outlines for 3d projection.
     axes : tuple
         A tuple of axes for z, y, x projections respectively.
@@ -509,7 +514,8 @@ def outline_pixels_in_stack_projections(axes, mask,
 
 def compare_stack_projections(imgs, labels=None, subfigwidth=3,
                       vmin=None, vmax=None, proj='mean',
-                      add_labels=False, normalized=False, cmap=cm.viridis):
+                      add_labels=False, normalized=False,
+                      cmap=cm.viridis, **kwargs):
     """Compare projections of 3D stacks.
 
     Parameters
@@ -586,7 +592,8 @@ def compare_stack_projections(imgs, labels=None, subfigwidth=3,
             ax_x = plt.Subplot(fig, gs[0, 1], sharey=ax_z)
 
             project_image_stack(img, vmin, vmax, (ax_z, ax_y, ax_x),
-                                proj, subfigwidth, add_labels, cmap=cmap)
+                                proj, subfigwidth, add_labels,
+                                cmap=cmap, **kwargs)
 
             fig.add_subplot(ax_z)
             fig.add_subplot(ax_y)
