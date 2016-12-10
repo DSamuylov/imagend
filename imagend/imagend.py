@@ -252,13 +252,13 @@ def draw_points_in_stack_projections(axes, pos_is, marker='.',
     # Note: we remove repetitions for better visualisation:
     xy_unique = np.array(list(set([tuple([_x, _y]) for _x, _y in zip(x, y)])))
     ax_z.plot(xy_unique[:, 0], xy_unique[:, 1],
-              marker=marker, color=color, linestyle=' ', mew=0, **kwargs)
+              marker=marker, color=color, linestyle=' ', mew=mew, **kwargs)
     xz_unique = np.array(list(set([tuple([_x, _z]) for _x, _z in zip(x, z)])))
     ax_y.plot(xz_unique[:, 0], xz_unique[:, 1],
-              marker=marker, color=color, linestyle=' ', mew=0, **kwargs)
+              marker=marker, color=color, linestyle=' ', mew=mew, **kwargs)
     zy_unique = np.array(list(set([tuple([_z, _y]) for _z, _y in zip(z, y)])))
     ax_x.plot(zy_unique[:, 0], zy_unique[:, 1],
-              marker=marker, color=color, linestyle=' ', mew=0, **kwargs)
+              marker=marker, color=color, linestyle=' ', mew=mew, **kwargs)
 
 
 def draw_line_segment_in_stack_projections(axes, pos_is_start, pos_is_end,
