@@ -135,7 +135,7 @@ def project_image_stack(img, vmin=None, vmax=None, axes=None,
 def project_image_sequence(img_sequence, frames=None,
                    nsubfig=None, subfigwidth=3, ncol=5,
                    vmin=None, vmax=None, proj='mean',
-                   add_labels=False, cmap=cm.viridis):
+                   add_labels=False, cmap=cm.viridis, add_title=True):
     """Plot a grid of x,y,z projections of an image sequence.
 
     Parameters
@@ -176,6 +176,10 @@ def project_image_sequence(img_sequence, frames=None,
 
     if frames is None:
         frames = range(0, n_frames)
+    elif isinstance(frames, int):
+        frames = np.linspace(0, n_frames, frames,
+                             endpoint=False, dtype=np.uint8)
+
     if nsubfig is None:
         n_subfig = len(frames)
 
@@ -216,7 +220,8 @@ def project_image_sequence(img_sequence, frames=None,
                       )
 
             ax_z = plt.Subplot(fig, gs[0, 0])
-            ax_z.set_title('frame={}'.format(frames[ind]))
+            if add_title is True:
+                ax_z.set_title('frame={}'.format(frames[ind]))
             ax_y = plt.Subplot(fig, gs[1, 0], sharex=ax_z)
             ax_x = plt.Subplot(fig, gs[0, 1], sharey=ax_z)
 
@@ -604,34 +609,40 @@ def compare_stack_projections(imgs, labels=None, subfigwidth=3,
     return fig, axes
 
 
-def show_stack(stack, slice_ind_list=None, n_col=5, width_subfig=5,
-               vmin=None, vmax=None, cmap=cm.viridis):
+def show_stack(img_stack, slices_to_plot=None, n_cols=5, width_subfig=5,
+               vmin=None, vmax=None, normalized=True, title=True,
+               width_factor=1, cmap=cm.viridis):
     """Display slices of 3D stack of images"""
-    assert len(stack.shape) == 3
-    nslices, ny, nx = stack.shape
-    if slice_ind_list is None:
-        slice_ind_list = np.arange(nslices)
-    n_subfig = len(slice_ind_list)
-    height_subfig = width_subfig*np.float64(ny)/nx
-    n_row = n_subfig/n_col + 1
-    if vmin is None:
-        vmin = stack.min()
-    if vmax is None:
-        vmax = stack.max()
-    fig = plt.figure(figsize=(width_subfig*n_col, height_subfig*n_row))
-    fig.patch.set_alpha(0)
-    axes = []
-    for i in range(n_row):
-        for j in range(n_col):
-            ind = i*n_col + j
-            if ind >= n_subfig:
-                break
-            _slice = slice_ind_list[ind]
-            ax = fig.add_subplot(n_row, n_col, ind+1)
-            ax.imshow(stack[_slice], aspect=1,
-                      interpolation="none", cmap=cmap,
-                      vmin=vmin, vmax=vmax)
-            ax.set_title('slice {}'.format(_slice))
-            ax.axis('off')
-            axes.append(ax)
+    assert len(img_stack.shape) == 3
+    n_slices, n_height, n_width = img_stack.shape
+
+    if slices_to_plot is None:
+        slices_to_plot = np.arange(n_slices)
+
+    # Number of subfigures:
+    n_images = len(slices_to_plot)
+    n_rows = int(np.ceil(float(n_images)/n_cols))
+
+    # Gray value range:
+    vmin = img_stack.min() if normalized and vmin is None else None
+    vmax = img_stack.max() if normalized and vmax is None else None
+
+    fig, axes = plt.subplots(
+        nrows=n_rows, ncols=n_cols,
+        figsize=(width_factor*n_cols, width_factor*n_rows))
+    for index in range(n_cols*n_rows):
+        i_col = index % n_cols
+        i_row = (index - i_col + 1)/n_cols
+
+        ax = axes[i_row, i_col] if n_rows > 1 else axes[i_col]
+        ax.axis('off')
+
+        if index < n_images:
+            slice_id = slices_to_plot[index]
+            image = img_stack[slice_id]
+            ax.imshow(image, interpolation="nearest", cmap=cmap, vmin=vmin, vmax=vmax)
+            if title is True:
+                ax.set_title('Slice: {}'.format(slice_id))
+
+    fig.tight_layout()
     return fig, axes
