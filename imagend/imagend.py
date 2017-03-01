@@ -38,8 +38,8 @@ def project(img, axis, proj='mean'):
 
 
 def project_image_stack(img, vmin=None, vmax=None, axes=None,
-                  proj="mean", figwidth=3, add_labels=False,
-                  cmap=cm.viridis, alpha=1, aspect=1):
+                        proj="mean", figwidth=3, add_labels=False,
+                        cmap=cm.viridis, alpha=1, aspect=1):
     """Plot x-, y-, z-projections of an image stack.
 
     Parameters
@@ -236,6 +236,194 @@ def project_image_sequence(img_sequence, frames=None,
     return fig, axes
 
 
+def project_hdr(mask, axes=None, label=None, figwidth=3, alpha=1, aspect=1,
+                fill=False, fontname="Times New Roman", fontsize=10, **kwargs):
+    assert mask.shape[-1] in [4]
+    assert len(mask.shape) == 4
+    n_s, n_h, n_w = mask.shape[:-1]
+
+    figheight = (figwidth)*np.float64(n_h + n_s)/(n_w + n_s)
+
+    if axes is None:
+        # Create figure
+        fig = plt.figure(figsize=(figwidth, figheight))
+        gs = gridspec.GridSpec(2, 2, width_ratios=[n_w, n_s],
+                               height_ratios=[n_h, n_s])
+        gs.update(wspace=0.05, hspace=0.05, bottom=0, top=1, left=0, right=1)
+        # Create axes:
+        ax_z = fig.add_subplot(gs[0, 0])
+        ax_y = fig.add_subplot(gs[1, 0], sharex=ax_z)
+        ax_x = fig.add_subplot(gs[0, 1], sharey=ax_z)
+    else:
+        assert len(axes) == 3
+        fig = None
+        ax_z, ax_y, ax_x = axes
+
+    if fill is True:
+        z_proj = np.max(mask, axis=0)
+        y_proj = np.max(mask, axis=1)
+        x_proj = np.swapaxes(np.max(mask, axis=2), 0, 1)
+
+        ax_z.imshow(z_proj, interpolation="nearest")
+        ax_y.imshow(y_proj, interpolation="nearest")
+        ax_x.imshow(x_proj, interpolation="nearest")
+
+    if fill is False:
+
+        mask_empty = np.zeros((n_s, n_h, n_w, 4))
+        ax_z.imshow(project(mask_empty, axis=0))
+        ax_y.imshow(project(mask_empty, axis=1))
+        ax_z.imshow(np.swapaxes(project(mask_empty, axis=2), 0, 1))
+        # Note: we project an empy mask to avoid problems with the origin.
+
+        _y = np.arange(n_h)
+        _x = np.arange(n_w)
+        _z = np.arange(n_s)
+
+        _mask = mask.max(axis=-1) > 0
+        _color_rgba = mask.reshape(-1, 4).max(axis=0)
+        _rgb, _alpha = _color_rgba[0:3], _color_rgba[3]
+
+        y_list, x_list = np.meshgrid(_y, _x, indexing='ij')
+        z_proj = np.zeros((n_h, n_w), np.uint8)
+        z_proj[np.max(_mask, axis=0)] = 1
+        ax_z.contour(
+            x_list, y_list, z_proj,
+            levels=[0, 1], colors=[_rgb], alpha=_alpha, origin="image",
+            **kwargs)
+
+        z_list, x_list = np.meshgrid(_z, _x, indexing='ij')
+        y_proj = np.zeros((n_s, n_w), np.uint8)
+        y_proj[np.max(_mask, axis=1)] = 1
+        ax_y.contour(
+            x_list, z_list, y_proj,
+            levels=[0, 1], colors=[_rgb], alpha=_alpha, origin="lower",
+            **kwargs)
+
+        x_list, z_list = np.meshgrid(_y, _z, indexing='ij')
+        x_proj = np.zeros((n_h, n_s), np.uint8)
+        x_proj[np.swapaxes(np.max(_mask, axis=2), 0, 1)] = 1
+        ax_x.contour(
+            z_list, x_list, x_proj,
+            levels=[0, 1], colors=[_rgb], alpha=_alpha, origin="lower",
+            **kwargs)
+
+    axes = [ax_z, ax_y, ax_x]
+    for ax in axes:
+        ax.axis('off')
+        ax.set_aspect(aspect)
+
+    if label is not None:
+        ax_z.set_title(label, fontname=fontname, fontsize=fontsize)
+
+    # z projection:
+    ax_z.set_xlim([-0.5, n_w - 0.5])
+    ax_z.set_ylim([n_h - 0.5, -0.5])
+    # y projection:
+    ax_y.set_xlim([-0.5, n_w-0.5])
+    ax_y.set_ylim([n_s-0.5, -0.5])
+    # x projection:
+    ax_x.set_xlim([-0.5, n_s-0.5])
+    ax_x.set_ylim([n_h-0.5, -0.5])
+
+    return fig, (ax_z, ax_y, ax_x)
+
+
+def project_hdr_stack(img_stack, levels=[0.95, 0.99], label=None, axes=None,
+                      cmap=cm.viridis, colors=None, fill=False,
+                      fontname="Times New Roman", fontsize=10,
+                      subfigwidth=3, **kwargs):
+    """
+    References: Computing and Graphing Highest Density Regions
+    """
+    levels = sorted(levels)
+    n_levels = len(levels)
+    n_px = img_stack.size
+    if colors is None:
+        colors = cmap(np.linspace(0, 1, n_levels))
+
+    # Find threshold values:
+    f_alpha_list = np.unique(img_stack)
+    p_list = np.zeros(f_alpha_list.size)
+    for i, f_alpha in enumerate(f_alpha_list):
+        p_list[i] = np.sum(img_stack >= f_alpha, dtype=np.float64)/n_px
+    alpha_list = 1. - p_list
+
+    hdr_list = np.zeros((n_levels,) + img_stack.shape + (4,))
+    for level_id, level in enumerate(levels):
+        i = np.squeeze(np.where(alpha_list >= level))[0]
+        f_alpha = f_alpha_list[i]
+        mask = img_stack >= f_alpha
+        hdr_list[level_id, mask > 0] = colors[level_id]
+    #     print "Level {}%: #pixels={}/{} ({:.2f}%)".format(
+    #         level*100.,
+    #         np.sum(mask), mask.size,
+    #         np.sum(mask, dtype=np.float64)/mask.size*100.)
+    # print "\n"
+
+    for i, hdr in enumerate(hdr_list):
+        fig, axes = project_hdr(
+            hdr, axes=axes,
+            label=label, fill=fill, figwidth=subfigwidth,
+            fontname=fontname, fontsize=fontsize, **kwargs)
+
+    return fig, axes
+
+
+def compare_hdr_stack_projections(
+        img_stacks, levels=[0.95, 0.99], labels=None,
+        fontname="Times New Roman", fontsize=10,
+        cmap=cm.viridis, colors=None, fill=False, subfigwidth=3, **kwargs):
+
+    img_stacks = np.array(img_stacks)
+    n_imgs, n_slices, n_h, n_w = img_stacks.shape
+
+    if labels is None:
+        # labels = ["image {}".format(i) for i in range(n_imgs)]
+        labels = [None]*n_imgs
+
+    n_col = n_imgs
+    n_row = 1
+
+    subfigheight = (subfigwidth)*np.float64(n_h + n_slices)/(n_w + n_slices)
+
+    fig = plt.figure(figsize=(subfigwidth*n_col, subfigheight*(n_row)))
+    gs_master = gridspec.GridSpec(n_row, n_col)
+
+    axes = []
+    for i in range(n_row):
+        for j in range(n_col):
+            ind = i*n_col + j
+            img_stack = img_stacks[ind]
+            label = labels[ind]
+
+            gs = gridspec.GridSpecFromSubplotSpec(
+                2, 2,
+                width_ratios=[n_w, n_slices],
+                height_ratios=[n_h, n_slices],
+                subplot_spec=gs_master[i, j],
+                wspace=0.05, hspace=0.05)
+
+            ax_z = plt.Subplot(fig, gs[0, 0])
+            if label is not None:
+                ax_z.set_title(label, fontname=fontname, fontsize=fontsize)
+            ax_y = plt.Subplot(fig, gs[1, 0], sharex=ax_z)
+            ax_x = plt.Subplot(fig, gs[0, 1], sharey=ax_z)
+
+            project_hdr_stack(img_stack, levels=levels, fill=fill,
+                              fontname=fontname, fontsize=fontsize,
+                              axes=(ax_z, ax_y, ax_x),
+                              subfigwidth=subfigwidth, cmap=cmap, **kwargs)
+
+            fig.add_subplot(ax_z)
+            fig.add_subplot(ax_y)
+            fig.add_subplot(ax_x)
+
+            axes.append((ax_z, ax_y, ax_x))
+
+    return fig, axes
+
+
 def draw_points_in_stack_projections(axes, pos_is, marker='.',
                                      color='r', mew=0, **kwargs):
     """Draw points on three projections.
@@ -249,7 +437,7 @@ def draw_points_in_stack_projections(axes, pos_is, marker='.',
     ...
 
     """
-    pos_is = pos_is.reshape(-1, 3)
+    pos_is = np.array(pos_is).reshape(-1, 3)
     z = pos_is[:, 0]
     y = pos_is[:, 1]
     x = pos_is[:, 2]
@@ -518,9 +706,10 @@ def draw_pixel_outlines_in_stack_projections(axes, mask,
 
 
 def compare_stack_projections(imgs, labels=None, subfigwidth=3,
-                      vmin=None, vmax=None, proj='mean',
+                      vmin=None, vmax=None, proj='mean', drop_y_proj=False,
                       add_labels=False, normalized=False,
-                      cmap=cm.viridis, **kwargs):
+                      cmap=cm.viridis,
+                      fontname="Times New Roman", fontsize=10, **kwargs):
     """Compare projections of 3D stacks.
 
     Parameters
@@ -552,15 +741,21 @@ def compare_stack_projections(imgs, labels=None, subfigwidth=3,
     imgs = np.array(imgs)
     n_imgs, n_slices, n_h, n_w = imgs.shape
 
-    if normalized:
+    if (normalized is not None) and (normalized is not False):
         vmin_list = []
         vmax_list = []
         for img in imgs:
             projected_list = [project(img, ax, proj) for ax in range(3)]
-            [vmin_list.append(projected.min()) for projected in projected_list]
-            [vmax_list.append(projected.max()) for projected in projected_list]
-        vmin = min(vmin_list)
-        vmax = max(vmax_list)
+            vmin_list.append(
+                min([projected.min() for projected in projected_list]))
+            vmax_list.append(
+                max([projected.max() for projected in projected_list]))
+        if normalized is True:
+            vmin = min(vmin_list)
+            vmax = max(vmax_list)
+        else:
+            vmin = vmin_list[normalized]
+            vmax = vmax_list[normalized]
         print "Image projections are normalized between: [{}, {}]"\
             .format(vmin, vmax)
 
@@ -592,7 +787,7 @@ def compare_stack_projections(imgs, labels=None, subfigwidth=3,
 
             ax_z = plt.Subplot(fig, gs[0, 0])
             if label is not None:
-                ax_z.set_title(label)
+                ax_z.set_title(label, fontname=fontname, fontsize=fontsize)
             ax_y = plt.Subplot(fig, gs[1, 0], sharex=ax_z)
             ax_x = plt.Subplot(fig, gs[0, 1], sharey=ax_z)
 
@@ -609,15 +804,20 @@ def compare_stack_projections(imgs, labels=None, subfigwidth=3,
     return fig, axes
 
 
-def show_stack(img_stack, slices_to_plot=None, n_cols=5, width_subfig=5,
-               vmin=None, vmax=None, normalized=True, title=True,
-               width_factor=1, cmap=cm.viridis):
+def show_stack(img_stack, slices_to_plot=None, labels=None, n_cols=5,
+               subfigwidth=None, vmin=None, vmax=None, normalized=True,
+               title=True, cmap=cm.viridis,
+               fontname="Times New Roman", fontsize=10):
     """Display slices of 3D stack of images"""
     assert len(img_stack.shape) == 3
     n_slices, n_height, n_width = img_stack.shape
 
     if slices_to_plot is None:
         slices_to_plot = np.arange(n_slices)
+
+    if np.array(slices_to_plot).size == 1:
+        slices_to_plot = np.linspace(0, n_slices, slices_to_plot,
+                                     endpoint=False, dtype=np.uint8)
 
     # Number of subfigures:
     n_images = len(slices_to_plot)
@@ -629,7 +829,7 @@ def show_stack(img_stack, slices_to_plot=None, n_cols=5, width_subfig=5,
 
     fig, axes = plt.subplots(
         nrows=n_rows, ncols=n_cols,
-        figsize=(width_factor*n_cols, width_factor*n_rows))
+        figsize=(subfigwidth*n_cols, subfigwidth*n_rows))
     for index in range(n_cols*n_rows):
         i_col = index % n_cols
         i_row = (index - i_col + 1)/n_cols
@@ -642,7 +842,11 @@ def show_stack(img_stack, slices_to_plot=None, n_cols=5, width_subfig=5,
             image = img_stack[slice_id]
             ax.imshow(image, interpolation="nearest", cmap=cmap, vmin=vmin, vmax=vmax)
             if title is True:
-                ax.set_title('Slice: {}'.format(slice_id))
+                if labels is None:
+                    label = 'Slice: {}'.format(slice_id)
+                else:
+                    label = labels[index]
+                ax.set_title(label, fontname=fontname, fontsize=fontsize)
 
     fig.tight_layout()
     return fig, axes
