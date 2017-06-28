@@ -674,7 +674,7 @@ def draw_box_in_stack_projections(axes, bbox, color="red", alpha=0.5,
 
 
 def draw_circle_in_stack_projections(axes, center_is, radius_is,
-                                     color="red", alpha=0.5, fill=False,
+                                     color="red", alpha=1., fill=False,
                                      zorder=100, lw=2, **kwargs):
 
     """Draw circle with same radius on three projections.
@@ -733,7 +733,7 @@ def draw_circle_in_stack_projections(axes, center_is, radius_is,
 
 
 def draw_ellipse_in_stack_projections(axes, center_is, radius_is,
-                                      color="red", alpha=0.5, fill=False,
+                                      color="red", alpha=1., fill=False,
                                       zorder=100, lw=2, **kwargs):
 
     """Draw ellipse on three projections.
@@ -766,8 +766,6 @@ def draw_ellipse_in_stack_projections(axes, center_is, radius_is,
         radius_is = radius_is.reshape(1, 3)
     elif len(radius_is.shape) == n_centers:
         radius_is = np.tile(radius_is, (n_centers, 1))
-    else:
-        raise Exception("Something goes wrong.")
 
     diameter_is = 2.0*radius_is
 
