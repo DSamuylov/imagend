@@ -1,4 +1,4 @@
-"""Python package to visualize image volumes.
+"""Python package to visualise image volumes.
 
 Author: Denis Samuylov, Prateek Purwar
 E-mail: denis.samuylov@gmail.com, pp.semtex@gmail.com

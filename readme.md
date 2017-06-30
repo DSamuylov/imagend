@@ -1,4 +1,4 @@
-A small python package to visualize 3 and 4 dimensional image data.
+Python package to visualise image stacks. It has been primarily developed to visualise the images acquired with a fluorescence microscope.
 
 
 # Project image stack
