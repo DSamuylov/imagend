@@ -5,6 +5,7 @@
 imagend.egg-info
 .ipynb_checkpoints
 *.pyc
+_*
 
 # Files
 min_example*

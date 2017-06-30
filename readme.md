@@ -1,10 +1,22 @@
 A small python package to visualize 3 and 4 dimensional image data.
 
 
-We can project just one stack...
+# Project image stack
 
-![one_stack](/examples/projection.png)
+![project_image_stack](/examples/project_image_stack.png)
 
-... or we can project the sequence.
+# Show image stack
 
-![sequence](/examples/sequence_of_projections.png)
+![show_image_stack](/examples/show_image_stack.png)
+
+# Project image sequence
+
+![project_image_sequence](/examples/project_image_sequence.png)
+
+# Project high density regions
+
+![project_hdr_sequence](/examples/project_hdr_sequence.png)
+
+# Overlayed projections
+
+![project_image_stack-overlays](/examples/project_image_stack-overlays.png)
