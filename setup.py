@@ -9,8 +9,8 @@ with open("readme.md", "rb") as f:
 
 setup(
     version="0.1.0",
-    name="imagend",
-    description="Python package to visualize 3 and 4 dimensional image data.",
+    name="imstackview",
+    description="Python package to visualize image stacks.",
     long_description=long_descr,
     author="Denis K. Samuylov",
     author_email="denis.samuylov@gmail.com",

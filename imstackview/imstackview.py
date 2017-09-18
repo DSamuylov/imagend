@@ -294,10 +294,10 @@ def project_image_sequence(image_sequence, frames=None, labels=None,
         frames = range(0, n_frames)
     elif type(frames) == int:
         frames = np.linspace(0, n_frames - 1, frames,
-                             endpoint=False, dtype=np.uint8)
-
+                             endpoint=True, dtype=np.uint8)
     if labels is None:
         labels = [None]*n_frames
+    n_frames_to_show = len(frames)
 
     # Compute correct normalization for projected images:
     if normalise is True:
@@ -307,7 +307,7 @@ def project_image_sequence(image_sequence, frames=None, labels=None,
         vmin, vmax = None, None
 
     # Initialise figure parameters:
-    n_row = int(math.ceil(float(n_frames)/n_col))
+    n_row = int(math.ceil(float(len(frames))/n_col))
     subfigheight = (n_h + n_slices)*np.float64(subfigwidth)/(n_w + n_slices)
 
     # Initialise figure:
@@ -323,9 +323,8 @@ def project_image_sequence(image_sequence, frames=None, labels=None,
     for i in range(n_row):
         for j in range(n_col):
             ind = i*n_col + j
-            if ind >= n_frames:
+            if ind >= n_frames_to_show:
                 break
-
             image_stack = image_sequence[frames[ind]]
             label = labels[ind]
 
@@ -651,15 +650,15 @@ def draw_points_on_stack_projections(
 
 
 def draw_line_segment_on_stack_projections(
-        axes, pos_start, pos_end, color="blue",
+        axes, pos_start, pos_end, color="blue", lw=1,
         projections=["z", "y", "x"], **kwargs):
     ax_z, ax_y, ax_x = [None, None, None]
-    for i, method in enumerate(projections):
-        if method == "z":
+    for i, proj in enumerate(projections):
+        if proj == "z":
             ax_z = axes[i]
-        elif method == "y":
+        elif proj == "y":
             ax_y = axes[i]
-        elif method == "x":
+        elif proj == "x":
             ax_x = axes[i]
         else:
             raise Exception("Axis label is wrong!")
@@ -676,12 +675,25 @@ def draw_line_segment_on_stack_projections(
     y = np.concatenate([pos_start[:, 1], pos_end[:, 1]])
     z = np.concatenate([pos_start[:, 0], pos_end[:, 0]])
 
+    # Draw line segments:
     if ax_z is not None:
-        ax_z.plot(x, y, color=color, linestyle="-", **kwargs)
+        ax_z.plot(x, y, color=color, linestyle="-", lw=lw, **kwargs)
     if ax_y is not None:
-        ax_y.plot(x, z, color=color, linestyle="-", **kwargs)
+        ax_y.plot(x, z, color=color, linestyle="-", lw=lw, **kwargs)
     if ax_x is not None:
-        ax_x.plot(z, y, color=color, linestyle="-", **kwargs)
+        ax_x.plot(z, y, color=color, linestyle="-", lw=lw, **kwargs)
+
+    # If these are points, draw points:
+    if ax_z is not None and np.allclose(*x) and np.allclose(*y):
+        ax_z.plot(x, y, color=color, linestyle="", marker=".",
+                  ms=2*lw, **kwargs)
+    if ax_y is not None and np.allclose(*x) and np.allclose(*z):
+        ax_y.plot(x, z, color=color, linestyle="", marker=".",
+                  ms=2*lw, **kwargs)
+    if ax_x is not None and np.allclose(*z) and np.allclose(*y):
+        ax_x.plot(z, y, color=color, linestyle="", marker=".",
+                  ms=2*lw, **kwargs)
+
 
 
 def draw_box_on_stack_projections(
@@ -926,7 +938,7 @@ def outline_pixels(ax, mask, color="green", **kwargs):
 
 
 def outline_pixels_on_stack_projections(
-        axes, mask, color="green", **kwargs):
+        axes, mask, color="blue", **kwargs):
     """Draw pixel outlines for 3d projection.
     axes : tuple
         A tuple of axes for z, y, x projections respectively.

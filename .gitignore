@@ -2,7 +2,7 @@
 .DS_Store
 
 # Python
-imagend.egg-info
+imstackview.egg-info
 .ipynb_checkpoints
 *.pyc
 _*
