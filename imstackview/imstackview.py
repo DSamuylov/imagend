@@ -196,7 +196,7 @@ def project_image_stack(image_stack, vmin=None, vmax=None, method="mean",
 
 def show_image_stack(
         image_stack, slices=None, labels=None, n_cols=5, subfigwidth=2,
-        vmin=None, vmax=None, normalized=True, cmap=cm.magma_r):
+        vmin=None, vmax=None, normalise=True, cmap=cm.magma_r):
     """Display slices of a three dimensional image stack."""
     dim = len(image_stack.shape)
     if dim != 3:
@@ -216,8 +216,8 @@ def show_image_stack(
     n_rows = int(np.ceil(float(n_images)/n_cols))
 
     # Gray value range:
-    vmin = image_stack.min() if normalized & (vmin is None) else vmin
-    vmax = image_stack.max() if normalized & (vmax is None) else vmax
+    vmin = image_stack.min() if normalise & (vmin is None) else vmin
+    vmax = image_stack.max() if normalise & (vmax is None) else vmax
 
     fig, axes = plt.subplots(
         nrows=n_rows, ncols=n_cols,
