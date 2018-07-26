@@ -1,9 +1,8 @@
-# Hidden directories
 .DS_Store
-
-# Python
-imstackview.egg-info
 .ipynb_checkpoints
+.idea
+
+*.egg-info
 *.pyc
 _[a-z1-9]*
 

@@ -224,7 +224,7 @@ def show_image_stack(
         figsize=(subfigwidth*n_cols, subfigwidth*n_rows))
     for index in range(n_cols*n_rows):
         i_col = index % n_cols
-        i_row = (index - i_col + 1)/n_cols
+        i_row = (index - i_col + 1) // n_cols
 
         if (n_rows > 1) & (n_cols > 1):
             ax = axes[i_row, i_col]
